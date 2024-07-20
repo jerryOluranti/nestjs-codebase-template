@@ -2,10 +2,306 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["omitApi", "fullTextSearch"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  firstName   String
+  lastName    String
+  image       String?
+  address     String?   @db.VarChar(250)
+  dateOfBirth DateTime?
+
+  phoneNumber String @unique
+  email       String @unique
+
+  type   UserType
+  status UserStatus @default(UNVERIFIED)
+
+  driverData DriverData?
+
+  personalReviews Review[] @relation("ReviewedUser")
+  reviews         Review[] @relation("Reviewer")
+
+  rides Passenger[]
+
+  bankAccounts   BankAccount[]
+  payoutRequests PayoutRequest[]
+  transactions   Transaction[]
+  notifications  Notification[]
+
+  updatedAt DateTime? @updatedAt
+  createdAt DateTime  @default(now())
+}
+
+model DriverData {
+  driverId String @id @db.Uuid
+  driver   User   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  walletAmount                 Float          @default(0.0)
+  nationalIdentifiactionNumber String?
+  driverLicense                DriverLicense?
+  vehicles                     Vehicle[]
+  trips                        Trip[]
+}
+
+model DriverLicense {
+  driverId String     @id @db.Uuid
+  driver   DriverData @relation(fields: [driverId], references: [driverId], onDelete: Cascade)
+
+  frontImage         String
+  backImage          String
+  registrationNumber String
+  expiryDate         DateTime
+
+  updatedAt DateTime? @updatedAt
+  createdAt DateTime  @default(now())
+}
+
+model Vehicle {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  driverId   String     @db.Uuid
+  driverData DriverData @relation(fields: [driverId], references: [driverId], onDelete: Cascade)
+
+  images            String[]
+  brand             String
+  model             String
+  plateNumber       String
+  drivingExperience String
+  type              String
+  color             String        @db.VarChar(7)
+  year              String        @db.VarChar(4)
+  status            VehicleStatus @default(AWAITING_VERIFICATION)
+
+  registration VehicleRegistrationData?
+
+  updatedAt DateTime? @updatedAt
+  createdAt DateTime  @default(now())
+}
+
+model VehicleRegistrationData {
+  vehicleId String  @id @db.Uuid
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  proof                 String
+  insurance             String
+  inspectionCertificate String
+}
+
+model Passenger {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  trip   Trip   @relation(fields: [tripId], references: [id])
+  tripId String @db.Uuid
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @db.Uuid
+
+  laugageCount      Int   @default(0)
+  laugageWeightInKg Float @default(0.0)
+  bookedSeats       Int   @default(1)
+
+  status PassengerStatus @default(AWAITING_APPROVAL)
+
+  payment Transaction?
+
+  createdAt DateTime @default(now())
+}
+
+model Trip {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  type              TripType
+  fromAddress       String
+  toAddress         String
+  fromCoordinate    String[]
+  toCoordinate      String[]
+  departureTime     DateTime
+  dropOff           String
+  dropOffCoordinate String[]
+  basicPrice        Float
+  premiumPrice      Float
+  availableSeats    Int
+  totalSeats        Int
+
+  status TripStatus @default(SCHEDULED)
+
+  driverData DriverData @relation(fields: [driverId], references: [driverId])
+  driverId   String     @db.Uuid
+
+  passengers Passenger[]
+
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  rating  Float  @default(0.0)
+  message String @default("") @db.VarChar(500)
+
+  user   User   @relation("ReviewedUser", fields: [userId], references: [id])
+  userId String @db.Uuid
+
+  reviewer   User   @relation("Reviewer", fields: [reviewerId], references: [id])
+  reviewerId String @db.Uuid
+
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  reason          String    @db.VarChar(100)
+  message         String    @default("") @db.VarChar(500)
+  timeOfOccurence DateTime?
+
+  reporterId     String @db.Uuid
+  reportedUserId String @db.Uuid
+
+  createdAt DateTime @default(now())
+}
+
+model BankAccount {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  accountName   String
+  bankName      String
+  accountNumber String @unique
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+
+  createdAt DateTime @default(now())
+}
+
+model PayoutRequest {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+
+  accountNumber String?
+  amount        Float
+
+  status PayoutStatus @default(AWAITING_APPROVAL)
+
+  createdAt DateTime @default(now())
+}
+
+model Transaction {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId String? @db.Uuid
+
+  amount      Float
+  referenceId String?            @db.VarChar(24)
+  purpose     TransactionPurpose
+  status      TransactionStatus  @default(PENDING)
+
+  ride   Passenger? @relation(fields: [rideId], references: [id])
+  rideId String?    @unique @db.Uuid
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  type NotificationType @default(SYSTEM)
+
+  title String
+  body  String?
+  data  Json?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+
+  createdAt DateTime @default(now())
+}
+
+enum UserType {
+  DRIVER
+  PASSENGER
+}
+
+enum UserStatus {
+  UNVERIFIED
+  VERIFIED
+  BLOCKED
+  DELETED
+}
+
+enum VehicleStatus {
+  AWAITING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
+enum TripType {
+  ONE_WAY
+  ROUND
+}
+
+enum TripStatus {
+  SCHEDULED
+  ENROUTE
+  ENDED
+  CANCELLED
+}
+
+enum RideMode {
+  BASIC
+  PREMIUM
+}
+
+enum PassengerStatus {
+  AWAITING_APPROVAL
+  ACCEPTED
+  CANCELLED
+  REJECTED
+}
+
+enum PayoutType {
+  REFUND
+  WITHDRAW
+  REWARD
+}
+
+enum PayoutStatus {
+  AWAITING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum TransactionPurpose {
+  RIDE_BASIC
+  RIDE_PREMIUM
+  REFUND
+  WITHDRAWAL
+  RIDE_CREDIT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum NotificationType {
+  SYSTEM
+  SYSTEM_INFO
+  SYSTEM_ACTION
+  RATING
+  PROMOTION
 }
