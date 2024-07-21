@@ -24,5 +24,3 @@ export class FirebaseAuthGuard implements CanActivate {
         }
     }
 }
-
-export const AllowOnly = (role: AppRoles) => SetMetadata<string, AppRoles>("allowed", role);

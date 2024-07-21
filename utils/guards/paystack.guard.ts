@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
-import { APIError } from "../../utils/types";
+import { APIError } from "../types";
 import { createHmac } from "crypto";
-import { env } from "../../utils/env";
+import { env } from "../env";
 
 @Injectable()
 export class PaystackWebhookGuard implements CanActivate {

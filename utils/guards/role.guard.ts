@@ -1,7 +1,7 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import {CanActivate, ExecutionContext, Injectable, SetMetadata, UnauthorizedException} from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
-import { APIError, AppRoles } from "../../utils/types";
+import { APIError, AppRoles } from "../types";
 
 @Injectable()
 export class RoleGuard implements CanActivate {
@@ -38,3 +38,5 @@ export class RoleGuard implements CanActivate {
 		return true;
 	}
 }
+
+export const AllowOnly = (role: AppRoles) => SetMetadata<string, AppRoles>("allowed", role);

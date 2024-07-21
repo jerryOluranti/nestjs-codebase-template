@@ -42,6 +42,13 @@ model User {
   createdAt DateTime  @default(now())
 }
 
+model UserOtp {
+  userId         String @id @db.Uuid
+  phoneNumberOtp String @db.VarChar(6)
+
+  createdAt DateTime @default(now())
+}
+
 model DriverData {
   driverId String @id @db.Uuid
   driver   User   @relation(fields: [driverId], references: [id], onDelete: Cascade)
